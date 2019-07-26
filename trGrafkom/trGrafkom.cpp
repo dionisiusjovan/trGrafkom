@@ -18,7 +18,9 @@ const float PI = 3.14;
 bool mouseDown;
 char keypress = 'a';
 
-
+float32 timeStep = 1 / 60.0;
+int32 velocityIteration = 8.0;
+int32 positionIteration = 3.0;
 
 //define physics world
 b2Vec2 gravity(0.0f, 9.8f);
@@ -82,13 +84,13 @@ b2Body* add3angle(int x, int y, float r, bool dyn = true){ //add bodydef
 
 	//attach polygon using fixture def
 	b2PolygonShape dyn3angle;
-	b2Vec2 Vertices[3];
-	float a = 6.28 / 3;
-	for (int i = 0; i < 3; i++)
+	b2Vec2 Vertices[4];
+	float a = 12.56 / 3;
+	for (int i = 0; i < 4; i++)
 	{
-		Vertices[i].Set(0 + cos(i*a)*r*p2m, 0 + sin(i*a)*r*p2m);
+		Vertices[i].Set(0 + cos(i*a)*r * 8, 0 + sin(i*a)*r * 8);
 	}
-	int32 count = 3;
+	int32 count = 4;
 	dyn3angle.Set(Vertices, count);
 
 	b2FixtureDef fixtureDef;
@@ -136,7 +138,7 @@ void draw3angle(b2Vec2* points, b2Vec2 center, float angle){
 	glTranslatef(center.x*m2p, center.y*m2p, 0);
 	glRotatef(angle*180.0 / PI, 0, 0, 1);
 	glBegin(GL_POLYGON);
-	for (int i = 0; i<3; i++){
+	for (int i = 0; i<4; i++){
 		glVertex2f(points[i].x*m2p, points[i].y*m2p);
 	}
 	glEnd();
@@ -165,36 +167,46 @@ void handleKeypress(unsigned char key, int x, int y) {
 
 void mouse(int button, int state, int x, int y)
 {
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
+	if ((keypress == 'a' || keypress == 'A') && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
 	{
 		mouseDown = true;
 		glColor3f(1, 1, 1);
-		//addRectangle(x, y, 20, 20, true);
-		add3angle(x, y, 20, true);
+		addRectangle(x, y, 20, 20, true);
 
-		float32 timeStep = 1 / 20.0;
-		int32 velocityIteration = 8.0;
-		int32 positionIteration = 3.0;
+
 		world->Step(timeStep, velocityIteration, positionIteration);
 
 		glutSwapBuffers();
 		glutPostRedisplay();
 
 	}
-	else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN){
+	else if ((keypress == 's' || keypress == 'S') && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN){
 		mouseDown = true;
 		glColor3f(1, 1, 1);
 		addCircle(x, y, 2000, true);
 
-		float32 timeStep = 1 / 20.0;
-		int32 velocityIteration = 8.0;
-		int32 positionIteration = 3.0;
 		world->Step(timeStep, velocityIteration, positionIteration);
 
 		glutSwapBuffers();
 		glutPostRedisplay();
 	}
-	mouseDown = false;
+	else if (((keypress == 'd' || keypress == 'D') && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN))
+	{
+		mouseDown = true;
+		glColor3f(1, 1, 1);
+		add3angle(x, y, 2, true);
+
+
+		world->Step(timeStep, velocityIteration, positionIteration);
+
+		glutSwapBuffers();
+		glutPostRedisplay();
+	}
+	else
+	{
+		mouseDown = false;
+	}
+
 
 	printf("%d %d %d \n", state, x, y);
 }
@@ -202,6 +214,7 @@ void mouse(int button, int state, int x, int y)
 void display(){
 	glClear(GL_COLOR_BUFFER_BIT);
 	glLoadIdentity();
+	//untuk gambar semua bentuk
 	b2Body* tmp = world->GetBodyList();
 	b2Vec2 points[4];
 	while (tmp){
@@ -210,19 +223,17 @@ void display(){
 			drawCircle(tmp->GetWorldCenter(), c->m_radius, tmp->GetAngle());
 		}
 		else {
-			for (int i = 0; i < 3; i++)
+			for (int i = 0; i < 4; i++)
 			{
 				points[i] = ((b2PolygonShape*)tmp->GetFixtureList()->GetShape())->GetVertex(i);
 			}
-			//drawSquare(points, tmp->GetWorldCenter(), tmp->GetAngle());
+			drawSquare(points, tmp->GetWorldCenter(), tmp->GetAngle());
 			draw3angle(points, tmp->GetWorldCenter(), tmp->GetAngle());
 		}
 		tmp = tmp->GetNext();
 	}
 
-	float32 timeStep = 1 / 20.0;
-	int32 velocityIteration = 8.0;
-	int32 positionIteration = 3.0;
+
 	world->Step(timeStep, velocityIteration, positionIteration);
 
 	glutSwapBuffers();
@@ -258,9 +269,6 @@ int main(int argc, char** argv)
 	glutMouseFunc(mouse);
 	glutKeyboardFunc(handleKeypress);
 
-	float32 timeStep = 1 / 20.0;
-	int32 velocityIteration = 8.0;
-	int32 positionIteration = 3.0;
 	world->Step(timeStep, velocityIteration, positionIteration); //update frame
 	glutSwapBuffers();
 
