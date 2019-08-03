@@ -7,6 +7,7 @@
 #include "stdlib.h"
 #include "glut.h"
 #include "Box2D\Box2D.h"
+#include "imageloader.h"
 
 const float WIDTH = 800.0;
 const float HEIGHT = 600.0;
@@ -18,6 +19,8 @@ const float PI = 3.14;
 bool mouseDown;
 char keypress = 'a';
 
+GLuint _textureId;
+
 float32 timeStep = 1 / 60.0;
 int32 velocityIteration = 8.0;
 int32 positionIteration = 3.0;
@@ -25,6 +28,14 @@ int32 positionIteration = 3.0;
 //define physics world
 b2Vec2 gravity(0.0f, 9.8f);
 b2World* world; //pointer, dynamically allocated
+
+GLuint loadTexture(Image* image) {
+	GLuint textureId;
+	glGenTextures(1, &textureId);
+	glBindTexture(GL_TEXTURE_2D, textureId);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image->width, image->height, 0, GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+	return textureId;
+}
 
 b2Body* addRectangle(int x, int y, int w, int h, bool dyn = true){ //add bodydef
 	//create dynamic body
@@ -115,6 +126,41 @@ void drawSquare(b2Vec2* points, b2Vec2 center, float angle){
 	glEnd();
 	glPopMatrix();
 	glFlush();
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, _textureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+	glColor3f(1, 1, 1);
+	glBegin(GL_QUADS);
+	//glNormal3f(0.0, 0.0, 1.0);
+	for (int i = 0; i<4; i++){
+		if (i == 0){
+			glTexCoord2f(0.0f, 0.0f);
+		}
+		else if (i == 1){
+			glTexCoord2f(1.0f, 0.0f);
+		}
+		else if (i == 2){
+			glTexCoord2f(1.0f, 1.0f);
+		}
+		else if (i == 3){
+			glTexCoord2f(0.0f, 1.0f);
+		}
+		glVertex2f(points[i].x*m2p, points[i].y*m2p);                                                //menggambar dengan vertex yang dipass dari points yang berasal dari
+	}                                                                                                                                        //fungsi render.
+	glEnd();
+
+
+	glDisable(GL_TEXTURE_2D);
+	glutSwapBuffers();
+	glutPostRedisplay();
+	glPopMatrix();
+	glFlush();
+
+
+
 }
 
 void drawCircle(b2Vec2 center, float r, float angle){
@@ -144,6 +190,31 @@ void draw3angle(b2Vec2* points, b2Vec2 center, float angle){
 	glEnd();
 	glPopMatrix();
 	glFlush();
+}
+
+void render(){
+	b2Body* tmp = world->GetBodyList(); //get all body in the world and store it at tmp pointer
+	b2Vec2 points[4];
+	while (tmp){
+		if (tmp->GetFixtureList()->GetShape()->GetType() == 0){                                                //if body at tmp shape type == 0 (circle)
+			b2CircleShape* c = ((b2CircleShape*)tmp->GetFixtureList()->GetShape()); //store shape of the body at pointer circle c
+			drawCircle(tmp->GetWorldCenter(), c->m_radius, tmp->GetAngle());                //call drawcircle, params: center point of the body, radius, angle
+		}
+		else {
+			for (int i = 0; i < 4; i++)
+			{
+				points[i] = ((b2PolygonShape*)tmp->GetFixtureList()->GetShape())->GetVertex(i);        //store all vertex of the body shape on tmp to the array b2vec2 points[]
+			}
+			drawSquare(points, tmp->GetWorldCenter(), tmp->GetAngle());                //passing all vertex (on the array points) to drawsquare and angle.
+			draw3angle(points, tmp->GetWorldCenter(), tmp->GetAngle());
+		}
+		tmp = tmp->GetNext();                                                                                                //go to next node of pointer tmp
+	}
+
+
+
+
+	world->Step(timeStep, velocityIteration, positionIteration);                        //update frame sesuai gravitasi dan waktu
 }
 
 void handleKeypress(unsigned char key, int x, int y) {
@@ -251,6 +322,10 @@ void init()
 	glMatrixMode(GL_MODELVIEW);
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	world = new b2World(gravity);
+
+	Image* image = loadBMP("wall.bmp");
+	_textureId = loadTexture(image);
+	delete image;
 
 	addRectangle(0, 600, 1600, 20, false);
 
