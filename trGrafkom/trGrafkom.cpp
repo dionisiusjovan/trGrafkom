@@ -115,17 +115,11 @@ b2Body* add3angle(int x, int y, float r, bool dyn = true){ //add bodydef
 }
 
 void drawSquare(b2Vec2* points, b2Vec2 center, float angle){
-	glColor3f(1, 1, 1);
+
 	glPushMatrix();
 	glTranslatef(center.x* m2p, center.y*m2p, 0);
 	glRotatef(angle*180.0 / PI, 0, 0, 1);
-	glBegin(GL_QUADS);
-	for (int i = 0; i<4; i++){
-		glVertex2f(points[i].x*m2p, points[i].y*m2p);
-	}
-	glEnd();
-	glPopMatrix();
-	glFlush();
+
 	glEnable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, _textureId);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
