@@ -28,6 +28,18 @@ public:
 		foundBodies.push_back(fixture->GetBody());
 		return true;//keep going to find all fixtures in the query area
 	}
+};
+
+
+class MyQueryCallback : public b2QueryCallback
+{
+public:
+	std::vector<b2Body*> foundBodies;
+	bool ReportFixture(b2Fixture* fixture)
+	{
+		foundBodies.push_back(fixture->GetBody());
+		return true;//keep going to find all fixtures in the query area
+	}
 
 GLuint _textureId;
 
@@ -235,9 +247,40 @@ void handleKeypress(unsigned char key, int x, int y) {
 	case 'D':
 		keypress = 'D';
 		break;
+	case'f':
+	case 'F':
+		keypress = 'F';
+		break;
+
 
 	}
 	printf("%c", keypress);
+}
+
+void mouseMotion(int x, int y){
+
+
+}
+
+void mouseJoint(int x, int y){
+	b2BodyDef bodyDef;
+	bodyDef.type = b2_staticBody;
+
+	b2MouseJointDef mJointDef;
+	mJointDef.bodyA = world->CreateBody(&bodyDef);
+	mJointDef.collideConnected = true;
+	mJointDef.maxForce = 500;
+
+
+	for (int i = 0; i < callback.foundBodies.size(); i++)
+	{
+		mJointDef.bodyB = callback.foundBodies[0];
+	}
+	mJointDef.target.Set(x*m2p, y*m2p);
+	//b2MouseJoint* joint = (b2MouseJoint*)world->CreateJoint(&mJointDef);
+	world->CreateJoint(&mJointDef);
+	world->Step(timeStep, velocityIteration, positionIteration);
+
 }
 
 void mouse(int button, int state, int x, int y)
@@ -277,6 +320,23 @@ void mouse(int button, int state, int x, int y)
 		glutSwapBuffers();
 		glutPostRedisplay();
 	}
+	else if (((keypress == 'f' || keypress == 'F') && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN))
+	{
+		b2AABB aabb;
+		int posX = x;
+		int posY = y;
+		aabb.lowerBound.Set(posX - 0.1*p2m, posY - 0.1*p2m);
+		aabb.upperBound.Set(posX + 0.1*p2m, posY + 0.1*p2m);
+		world->QueryAABB(&callback, aabb);
+		if ((x != posX && y != posY) && state == GLUT_DOWN && button == GLUT_LEFT_BUTTON)
+		{
+			int currX = x;
+			int currY = y;
+			mouseJoint(currX, currY);
+			world->Step(timeStep, velocityIteration, positionIteration);
+		}
+	}
+
 	else
 	{
 		mouseDown = false;
